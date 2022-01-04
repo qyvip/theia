@@ -111,6 +111,10 @@ export class PluginViewRegistry implements FrontendApplicationContribution {
         this.trackVisibleWidget(TERMINAL_WIDGET_FACTORY_ID, { panelId: 'workbench.panel.terminal' });
         // TODO workbench.panel.comments - Theia does not have a proper comments view yet
 
+        this.quickView?.registerContainer(EXPLORER_VIEW_CONTAINER_ID, 'left', 'Explorer');
+        this.quickView?.registerContainer(SCM_VIEW_CONTAINER_ID, 'left', 'Source Control');
+        this.quickView?.registerContainer(SEARCH_VIEW_CONTAINER_ID, 'left', 'Search');
+
         this.updateFocusedView();
         this.shell.onDidChangeActiveWidget(() => this.updateFocusedView());
 
@@ -272,8 +276,10 @@ export class PluginViewRegistry implements FrontendApplicationContribution {
             commandId: toggleCommandId,
             label: options.label
         }));
+        toDispose.push(this.quickView?.registerContainer(id, location, options.label));
         toDispose.push(this.quickView?.registerItem({
             label: options.label,
+            location,
             open: async () => {
                 const widget = await this.openViewContainer(id);
                 if (widget) {
@@ -324,6 +330,7 @@ export class PluginViewRegistry implements FrontendApplicationContribution {
         }
         toDispose.push(this.quickView?.registerItem({
             label: view.name,
+            location: viewContainerId,
             when: view.when,
             open: () => this.openView(view.id, { activate: true })
         }));
