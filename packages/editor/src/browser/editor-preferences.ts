@@ -22,7 +22,8 @@ import {
     PreferenceContribution,
     PreferenceSchema,
     PreferenceChangeEvent,
-    PreferenceSchemaProperties
+    PreferenceSchemaProperties,
+    PreferenceValidationService
 } from '@theia/core/lib/browser/preferences';
 import { isWindows, isOSX, OS } from '@theia/core/lib/common/os';
 import { nls } from '@theia/core/lib/common/nls';
@@ -1582,15 +1583,18 @@ export const EditorPreferenceContribution = Symbol('EditorPreferenceContribution
 export const EditorPreferences = Symbol('EditorPreferences');
 export type EditorPreferences = PreferenceProxy<EditorConfiguration>;
 
-export function createEditorPreferences(preferences: PreferenceService, schema: PreferenceSchema = editorPreferenceSchema): EditorPreferences {
-    return createPreferenceProxy(preferences, schema);
+export function createEditorPreferences(
+    preferences: PreferenceService, schema: PreferenceSchema = editorPreferenceSchema, validator?: PreferenceValidationService
+): EditorPreferences {
+    return createPreferenceProxy(preferences, schema, undefined, validator);
 }
 
 export function bindEditorPreferences(bind: interfaces.Bind): void {
     bind(EditorPreferences).toDynamicValue(ctx => {
         const preferences = ctx.container.get<PreferenceService>(PreferenceService);
         const contribution = ctx.container.get<PreferenceContribution>(EditorPreferenceContribution);
-        return createEditorPreferences(preferences, contribution.schema);
+        const validator = ctx.container.get(PreferenceValidationService);
+        return createEditorPreferences(preferences, contribution.schema, validator);
     }).inSingletonScope();
     bind(EditorPreferenceContribution).toConstantValue({ schema: editorPreferenceSchema });
     bind(PreferenceContribution).toService(EditorPreferenceContribution);

@@ -49,7 +49,6 @@ export class PreferenceValidationService {
             const validValue = this.validateByName(preferenceName, value);
             if (validValue !== value) {
                 problemsDetected = true;
-                console.warn(`While validating options, found impermissible value for ${preferenceName}. Using valid value`, validValue, 'instead of configured value', value);
             }
             valid[preferenceName] = validValue;
         }
@@ -62,6 +61,14 @@ export class PreferenceValidationService {
     }
 
     validateBySchema(key: string, value: JSONValue, schema: ValidatablePreference | undefined): JSONValue {
+        const validated = this.doValidateBySchema(key, value, schema);
+        if (validated !== value) {
+            console.warn(`While validating prefrences, found impermissible value for ${key}. Using valid value`, validated, 'instead of configured value', value);
+        }
+        return validated;
+    }
+
+    protected doValidateBySchema(key: string, value: JSONValue, schema: ValidatablePreference | undefined): JSONValue {
         try {
             if (!schema) {
                 console.warn('Request to validate preference with no schema registered:', key);
@@ -118,7 +125,7 @@ export class PreferenceValidationService {
         const candidate = this.mapValidators(key, value, (function* (this: PreferenceValidationService): Iterable<ValueValidator> {
             for (const type of schema.type) {
                 validation.type = type as JsonType;
-                yield toValidate => this.validateBySchema(key, toValidate, validation);
+                yield toValidate => this.doValidateBySchema(key, toValidate, validation);
             }
         }).bind(this)());
         if (candidate !== value && (schema.default !== undefined || schema.defaultValue !== undefined)) {
@@ -131,7 +138,7 @@ export class PreferenceValidationService {
     protected validateAnyOf(key: string, value: JSONValue, schema: ValidatablePreference & { anyOf: ValidatablePreference[] }): JSONValue {
         const candidate = this.mapValidators(key, value, (function* (this: PreferenceValidationService): Iterable<ValueValidator> {
             for (const option of schema.anyOf) {
-                yield toValidate => this.validateBySchema(key, toValidate, option);
+                yield toValidate => this.doValidateBySchema(key, toValidate, option);
             }
         }).bind(this)());
         if (candidate !== value && (schema.default !== undefined || schema.defaultValue !== undefined)) {
@@ -164,7 +171,7 @@ export class PreferenceValidationService {
         }
         const valid = [];
         for (const item of candidate) {
-            const validated = this.validateBySchema(key, item, schema.items);
+            const validated = this.doValidateBySchema(key, item, schema.items);
             if (validated === item) {
                 valid.push(item);
             }
@@ -242,12 +249,12 @@ export class PreferenceValidationService {
         for (const [fieldKey, fieldValue] of Object.entries(value)) {
             const fieldLabel = `${key}#${fieldKey}`;
             if (schema.properties && fieldKey in schema.properties) {
-                const valid = this.validateBySchema(fieldLabel, fieldValue, schema.properties[fieldKey]);
+                const valid = this.doValidateBySchema(fieldLabel, fieldValue, schema.properties[fieldKey]);
                 if (valid !== fieldValue) {
                     return false;
                 }
             } else if (additionalPropertyValidator) {
-                const valid = this.validateBySchema(fieldLabel, fieldValue, additionalPropertyValidator);
+                const valid = this.doValidateBySchema(fieldLabel, fieldValue, additionalPropertyValidator);
                 if (valid !== fieldValue) {
                     return false;
                 }

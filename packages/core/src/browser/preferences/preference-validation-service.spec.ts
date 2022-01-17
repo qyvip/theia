@@ -28,7 +28,7 @@ describe('Preference Validation Service', () => {
     container.bind(PreferenceSchemaProvider).toConstantValue({ getDefaultValue: PreferenceSchemaProvider.prototype.getDefaultValue } as PreferenceSchemaProvider);
     container.bind(PreferenceLanguageOverrideService).toSelf().inSingletonScope();
     const validator = container.resolve(PreferenceValidationService);
-    const validateBySchema: (value: JSONValue, schema: PreferenceItem) => JSONValue = validator.validateBySchema.bind(validator, 'dummy');
+    const validateBySchema: (value: JSONValue, schema: PreferenceItem) => JSONValue = validator['doValidateBySchema'].bind(validator, 'dummy');
 
     describe('should validate strings', () => {
         const expected = 'expected';

@@ -16,11 +16,12 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { Disposable, Event, MaybePromise } from '../../common';
+import { Disposable, Emitter, Event, MaybePromise } from '../../common';
 import { PreferenceService } from './preference-service';
 import { PreferenceSchema } from './preference-contribution';
 import { PreferenceScope } from './preference-scope';
 import { OverridePreferenceName } from './preference-language-override-service';
+import { PreferenceValidationService } from './preference-validation-service';
 
 /**
  * It is worth explaining the type for `PreferenceChangeEvent`:
@@ -167,7 +168,12 @@ export interface PreferenceProxyOptions {
  *
  * Note that if `schema` is a Promise, most actions will be no-ops until the promise is resolved.
  */
-export function createPreferenceProxy<T>(preferences: PreferenceService, promisedSchema: MaybePromise<PreferenceSchema>, options?: PreferenceProxyOptions): PreferenceProxy<T> {
+export function createPreferenceProxy<T>(
+    preferences: PreferenceService,
+    promisedSchema: MaybePromise<PreferenceSchema>,
+    options?: PreferenceProxyOptions,
+    validator?: PreferenceValidationService
+): PreferenceProxy<T> {
     const opts = options || {};
     const prefix = opts.prefix || '';
     const style = opts.style || 'flat';
@@ -179,31 +185,43 @@ export function createPreferenceProxy<T>(preferences: PreferenceService, promise
     } else {
         promisedSchema.then(s => schema = s);
     }
-    const onPreferenceChanged = (listener: (e: PreferenceChangeEvent<T>) => any, thisArgs?: any, disposables?: Disposable[]) => preferences.onPreferencesChanged(changes => {
-        if (schema) {
-            for (const key of Object.keys(changes)) {
-                const e = changes[key];
-                const overridden = preferences.overriddenPreferenceName(e.preferenceName);
-                const preferenceName: any = overridden ? overridden.preferenceName : e.preferenceName;
-                if (preferenceName.startsWith(prefix) && (!overridden || !opts.overrideIdentifier || overridden.overrideIdentifier === opts.overrideIdentifier)) {
-                    if (schema.properties[preferenceName]) {
-                        const { newValue, oldValue } = e;
-                        listener({
-                            newValue, oldValue, preferenceName,
-                            affects: (resourceUri, overrideIdentifier) => {
-                                if (overrideIdentifier !== undefined) {
-                                    if (overridden && overridden.overrideIdentifier !== overrideIdentifier) {
-                                        return false;
+    let emitter: Emitter | undefined;
+    const onPreferenceChanged = (listener: (e: PreferenceChangeEvent<T>) => any, thisArgs?: any, disposables?: Disposable[]) => ensureEmitter()
+        .event(listener, thisArgs, disposables);
+
+    const ensureEmitter = (): Emitter<PreferenceChangeEvent<T>> => {
+        if (emitter !== undefined) {
+            return emitter;
+        }
+        emitter = new Emitter<PreferenceChangeEvent<T>>();
+        preferences.onPreferencesChanged(changes => {
+            if (schema) {
+                for (const key of Object.keys(changes)) {
+                    const e = changes[key];
+                    const overridden = preferences.overriddenPreferenceName(e.preferenceName);
+                    const preferenceName: any = overridden ? overridden.preferenceName : e.preferenceName;
+                    if (preferenceName.startsWith(prefix) && (!overridden || !opts.overrideIdentifier || overridden.overrideIdentifier === opts.overrideIdentifier)) {
+                        if (schema.properties[preferenceName]) {
+                            const { newValue, oldValue } = e;
+                            const validatedNewValue = validator ? validator.validateByName(preferenceName, newValue) : newValue;
+                            emitter!.fire(<PreferenceChangeEvent<T>>{
+                                newValue: validatedNewValue, oldValue, preferenceName,
+                                affects: (resourceUri, overrideIdentifier) => {
+                                    if (overrideIdentifier !== undefined) {
+                                        if (overridden && overridden.overrideIdentifier !== overrideIdentifier) {
+                                            return false;
+                                        }
                                     }
+                                    return e.affects(resourceUri);
                                 }
-                                return e.affects(resourceUri);
-                            }
-                        });
+                            });
+                        }
                     }
                 }
             }
-        }
-    }, thisArgs, disposables);
+        });
+        return emitter;
+    };
 
     const unsupportedOperation = (_: any, __: string) => {
         throw new Error('Unsupported operation');
@@ -213,7 +231,8 @@ export function createPreferenceProxy<T>(preferences: PreferenceService, promise
         const preferenceName = OverridePreferenceName.is(arg) ?
             preferences.overridePreferenceName(arg) :
             <string>arg;
-        return preferences.get(preferenceName, defaultValue, resourceUri || opts.resourceUri);
+        const value = preferences.get(preferenceName, defaultValue, resourceUri || opts.resourceUri);
+        return validator ? validator.validateByName(preferenceName, value) : value;
     };
 
     const ownKeys: () => string[] = () => {
@@ -259,7 +278,7 @@ export function createPreferenceProxy<T>(preferences: PreferenceService, promise
                         resourceUri: opts.resourceUri,
                         overrideIdentifier: opts.overrideIdentifier,
                         style
-                    });
+                    }, validator);
                     for (const k of Object.keys(value)) {
                         subProxy[k] = value[k];
                     }
@@ -275,7 +294,7 @@ export function createPreferenceProxy<T>(preferences: PreferenceService, promise
         }
         const fullProperty = prefix ? prefix + property : property;
         if (schema) {
-            if (isFlat || property.indexOf('.') === -1) {
+            if (isFlat || !property.includes('.')) {
                 if (schema.properties[fullProperty]) {
                     let value;
                     if (opts.overrideIdentifier) {
@@ -287,7 +306,7 @@ export function createPreferenceProxy<T>(preferences: PreferenceService, promise
                     if (value === undefined) {
                         value = preferences.get(fullProperty, undefined, opts.resourceUri);
                     }
-                    return value;
+                    return (validator && value !== undefined) ? validator.validateByName(fullProperty, value) : value;
                 }
             }
         }
@@ -310,7 +329,8 @@ export function createPreferenceProxy<T>(preferences: PreferenceService, promise
             const newPrefix = fullProperty + '.';
             for (const p of Object.keys(schema.properties)) {
                 if (p.startsWith(newPrefix)) {
-                    return createPreferenceProxy(preferences, schema, { prefix: newPrefix, resourceUri: opts.resourceUri, overrideIdentifier: opts.overrideIdentifier, style });
+                    return createPreferenceProxy(preferences, schema,
+                        { prefix: newPrefix, resourceUri: opts.resourceUri, overrideIdentifier: opts.overrideIdentifier, style }, validator);
                 }
             }
 
@@ -330,7 +350,7 @@ export function createPreferenceProxy<T>(preferences: PreferenceService, promise
             while (typeof value === 'object' && (segment = segments.pop())) {
                 value = value[segment];
             }
-            return segments.length ? undefined : value;
+            return segments.length ? undefined : validator?.validateByName(fullProperty, value) ?? value;
         }
         return undefined;
     };
