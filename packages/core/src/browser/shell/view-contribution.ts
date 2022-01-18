@@ -142,7 +142,7 @@ export abstract class AbstractViewContribution<T extends Widget> implements Comm
         }
         this.quickView?.registerItem({
             label: this.viewLabel,
-            location: this.options.viewContainerId ?? this.options.defaultWidgetOptions.area ?? "",
+            location: this.options.viewContainerId ?? this.options.defaultWidgetOptions.area ?? '',
             open: () => this.openView({ activate: true })
         });
     }

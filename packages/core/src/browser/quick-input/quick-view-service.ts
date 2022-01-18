@@ -94,14 +94,15 @@ export class QuickViewService implements QuickAccessContribution, QuickAccessPro
         const locationOrder = [ 'left', 'bottom', 'right', 'main' ].reverse();
         const filteredItems = filterItems(items, filter)
             .sort((a, b) => a.location.localeCompare(b.location))
+            .sort((a, b) => this.getLocationLabel(a.location).localeCompare(this.getLocationLabel(a.location)))
             .sort((a, b) => locationOrder.indexOf(b.location) - locationOrder.indexOf(a.location));
 
         let previousLocation: string | undefined;
         const itemsWithSeparators: (QuickPickSeparator|QuickPickItem)[] = [];
         for (const it of filteredItems) {
-            if (it.location !== previousLocation) {
-                previousLocation = it.location;
-                const locationLabel = this.getLocationLabel(it.location);
+            const locationLabel = this.getLocationLabel(it.location);
+            if (locationLabel !== previousLocation) {
+                previousLocation = locationLabel;
                 itemsWithSeparators.push({ type: 'separator', label: locationLabel });
             }
             itemsWithSeparators.push(it);

@@ -115,6 +115,11 @@ export class PluginViewRegistry implements FrontendApplicationContribution {
         this.quickView?.registerContainer(SCM_VIEW_CONTAINER_ID, 'left', 'Source Control');
         this.quickView?.registerContainer(SEARCH_VIEW_CONTAINER_ID, 'left', 'Search');
 
+        this.quickView?.registerContainer('explorer', 'left', 'Explorer');
+        this.quickView?.registerContainer('scm', 'left', 'Source Control');
+        this.quickView?.registerContainer('search', 'left', 'Search');
+        this.quickView?.registerContainer('debug', 'left', 'Debug');
+
         this.updateFocusedView();
         this.shell.onDidChangeActiveWidget(() => this.updateFocusedView());
 
