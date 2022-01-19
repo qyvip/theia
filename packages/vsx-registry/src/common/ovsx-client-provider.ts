@@ -25,5 +25,5 @@ export async function createOVSXClient(vsxEnvironment: VSXEnvironment): Promise<
         vsxEnvironment.getVscodeApiVersion(),
         vsxEnvironment.getRegistryApiUri()
     ]);
-    return new OVSXClient({ apiVersion, apiUrl: apiUrl.toString() });
+    return new OVSXClient({ apiVersion, apiUrl: apiUrl.toString() }, undefined!);
 }

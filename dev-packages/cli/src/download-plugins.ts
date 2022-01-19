@@ -35,6 +35,7 @@ import * as stream from 'stream';
 import * as temp from 'temp';
 import { promisify } from 'util';
 import { DEFAULT_SUPPORTED_API_VERSION } from '@theia/application-package/lib/api';
+import { RequestContext, RequestService } from '@theia/core/lib/node/request/request-service';
 
 const pipelineAsPromised = promisify(stream.pipeline);
 
@@ -66,15 +67,28 @@ export interface DownloadPluginsOptions {
      * The open-vsx registry API url.
      */
     apiUrl?: string;
+
+    proxyUrl?: string;
+    proxyAuthorization?: string;
+    strictSsl?: boolean;
 }
+
+const requestService = new RequestService();
 
 export default async function downloadPlugins(options: DownloadPluginsOptions = {}): Promise<void> {
     const {
         packed = false,
         ignoreErrors = false,
         apiVersion = DEFAULT_SUPPORTED_API_VERSION,
-        apiUrl = 'https://open-vsx.org/api'
+        apiUrl = 'https://open-vsx.org/api',
+        proxyUrl,
+        proxyAuthorization,
+        strictSsl
     } = options;
+
+    requestService.proxyUrl = proxyUrl;
+    requestService.authorization = proxyAuthorization;
+    requestService.strictSSL = strictSsl;
 
     // Collect the list of failures to be appended at the end of the script.
     const failures: string[] = [];
@@ -111,7 +125,7 @@ export default async function downloadPlugins(options: DownloadPluginsOptions = 
         const extensionPacks = await collectExtensionPacks(pluginsDir, excludedIds);
         if (extensionPacks.size > 0) {
             console.warn(`--- resolving ${extensionPacks.size} extension-packs ---`);
-            const client = new OVSXClient({ apiVersion, apiUrl });
+            const client = new OVSXClient({ apiVersion, apiUrl }, requestService);
             // De-duplicate extension ids to only download each once:
             const ids = new Set<string>(Array.from(extensionPacks.values()).flat());
             await Promise.all(Array.from(ids, async id => {
@@ -127,7 +141,7 @@ export default async function downloadPlugins(options: DownloadPluginsOptions = 
         const pluginDependencies = await collectPluginDependencies(pluginsDir, excludedIds);
         if (pluginDependencies.length > 0) {
             console.warn(`--- resolving ${pluginDependencies.length} extension dependencies ---`);
-            const client = new OVSXClient({ apiVersion, apiUrl });
+            const client = new OVSXClient({ apiVersion, apiUrl }, requestService);
             // De-duplicate extension ids to only download each once:
             const ids = new Set<string>(pluginDependencies);
             await Promise.all(Array.from(ids, async id => {
@@ -187,7 +201,7 @@ async function downloadPluginAsync(failures: string[], plugin: string, pluginUrl
 
     let attempts: number;
     let lastError: Error | undefined;
-    let response: Response | undefined;
+    let response: RequestContext | undefined;
 
     for (attempts = 0; attempts < maxAttempts; attempts++) {
         if (attempts > 0) {
@@ -195,12 +209,15 @@ async function downloadPluginAsync(failures: string[], plugin: string, pluginUrl
         }
         lastError = undefined;
         try {
-            response = await xfetch(pluginUrl);
+            response = await requestService.request({
+                url: pluginUrl
+            });
         } catch (error) {
             lastError = error;
             continue;
         }
-        const retry = response.status === 439 || response.status >= 500;
+        const status = response.res.statusCode;
+        const retry = status && (status === 439 || status >= 500);
         if (!retry) {
             break;
         }
@@ -213,19 +230,19 @@ async function downloadPluginAsync(failures: string[], plugin: string, pluginUrl
         failures.push(chalk.red(`x ${plugin}: failed to download (unknown reason)`));
         return;
     }
-    if (response.status !== 200) {
-        failures.push(chalk.red(`x ${plugin}: failed to download with: ${response.status} ${response.statusText}`));
+    if (response.res.statusCode !== 200) {
+        failures.push(chalk.red(`x ${plugin}: failed to download with: ${response.res.statusCode}`));
         return;
     }
 
     if ((fileExt === '.vsix' || fileExt === '.theia') && packed === true) {
         // Download .vsix without decompressing.
         const file = createWriteStream(targetPath);
-        await pipelineAsPromised(response.body, file);
+        await pipelineAsPromised(response.asStream(), file);
     } else {
         await fs.mkdir(targetPath, { recursive: true });
         const tempFile = temp.createWriteStream('theia-plugin-download');
-        await pipelineAsPromised(response.body, tempFile);
+        await pipelineAsPromised(response.asStream(), tempFile);
         await decompress(tempFile.path, targetPath);
     }
 

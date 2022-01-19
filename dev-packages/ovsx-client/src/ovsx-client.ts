@@ -14,7 +14,6 @@
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  ********************************************************************************/
 
-import * as bent from 'bent';
 import * as semver from 'semver';
 import {
     VSXAllVersions,
@@ -26,9 +25,7 @@ import {
     VSXSearchParam,
     VSXSearchResult
 } from './ovsx-types';
-
-const fetchText = bent('GET', 'string', 200);
-const fetchJson = bent('GET', { 'Accept': 'application/json' }, 'json', 200);
+import { RequestService } from '@theia/core/lib/node/request/request-service';
 
 export interface OVSXClientOptions {
     apiVersion: string
@@ -37,7 +34,7 @@ export interface OVSXClientOptions {
 
 export class OVSXClient {
 
-    constructor(readonly options: OVSXClientOptions) { }
+    constructor(readonly options: OVSXClientOptions, readonly request: RequestService) { }
 
     async search(param?: VSXSearchParam): Promise<VSXSearchResult> {
         const searchUri = await this.buildSearchUri(param);
@@ -100,11 +97,16 @@ export class OVSXClient {
     }
 
     protected fetchJson<R>(url: string): Promise<R> {
-        return fetchJson(url) as Promise<R>;
+        return this.request.request({
+            url,
+            headers: { 'Accept': 'application/json' }
+        }).then(e => e.asJSON<R>());
     }
 
     fetchText(url: string): Promise<string> {
-        return fetchText(url);
+        return this.request.request({
+            url
+        }).then(e => e.asText());
     }
 
     /**

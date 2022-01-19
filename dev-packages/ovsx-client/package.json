@@ -29,6 +29,7 @@
     "watch": "theiaext watch"
   },
   "dependencies": {
+    "@theia/core": "1.21.0",
     "@types/bent": "^7.0.1",
     "bent": "^7.1.0",
     "semver": "^5.4.1"
