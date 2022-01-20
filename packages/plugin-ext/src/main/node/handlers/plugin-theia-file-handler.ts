@@ -36,15 +36,25 @@ export class PluginTheiaFileHandler implements PluginDeployerFileHandler {
 
     async handle(context: PluginDeployerFileHandlerContext): Promise<void> {
         const id = context.pluginEntry().id();
+        console.error('*************** PluginTheiaFileHandler !!! handle !!! ID ', id);
         const pluginDir = await this.getPluginDir(context);
+        console.error('*** PluginTheiaFileHandler !!! handle !!! TYPE ', context.pluginEntry().type);
+
         console.log(`[${id}]: trying to decompress into "${pluginDir}"...`);
         if (context.pluginEntry().type === PluginType.User && await fs.pathExists(pluginDir)) {
             console.log(`[${id}]: already found`);
             context.pluginEntry().updatePath(pluginDir);
             return;
         }
+
+        console.time(`*************** PluginTheiaFileHandler !!! unzip !!! ${id}`);
         await context.unzip(context.pluginEntry().path(), pluginDir);
+        console.timeEnd(`*************** PluginTheiaFileHandler !!! unzip !!! ${id}`);
+
         console.log(`[${id}]: decompressed`);
+
+        console.error('*** PluginTheiaFileHandler !!! handle !!! DONE ', id);
+
         context.pluginEntry().updatePath(pluginDir);
     }
 
