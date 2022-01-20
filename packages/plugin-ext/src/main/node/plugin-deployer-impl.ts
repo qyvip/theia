@@ -298,7 +298,11 @@ export class PluginDeployerImpl implements PluginDeployer {
                 const proxyPluginDeployerEntry = new ProxyPluginDeployerEntry(pluginFileHandler, (pluginDeployerEntry) as PluginDeployerEntryImpl);
                 if (pluginFileHandler.accept(proxyPluginDeployerEntry)) {
                     const pluginDeployerFileHandlerContext: PluginDeployerFileHandlerContext = new PluginDeployerFileHandlerContextImpl(proxyPluginDeployerEntry);
+                    console.time(`==== !!!!!!!!! PluginDeployerImpl !!! handle === ${proxyPluginDeployerEntry.id()}`);
                     const promise: Promise<void> = pluginFileHandler.handle(pluginDeployerFileHandlerContext);
+                    promise.then(() => {
+                        console.timeEnd(`==== !!!!!!!!! PluginDeployerImpl !!! handle === ${proxyPluginDeployerEntry.id()}`);
+                    });
                     waitPromises.push(promise);
                 }
             });
