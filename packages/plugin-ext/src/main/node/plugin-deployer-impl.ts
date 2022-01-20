@@ -95,10 +95,10 @@ export class PluginDeployerImpl implements PluginDeployer {
             currentDate.getSeconds()
         );
 
-        console.time('==== !!!!!!!!! PluginDeployerImpl !!! init resolvers === ');
+        // console.time('==== !!!!!!!!! PluginDeployerImpl !!! init resolvers === ');
         // init resolvers
         await this.initResolvers();
-        console.timeEnd('==== !!!!!!!!! PluginDeployerImpl !!! init resolvers === ');
+        // console.timeEnd('==== !!!!!!!!! PluginDeployerImpl !!! init resolvers === ');
 
         // check THEIA_DEFAULT_PLUGINS or THEIA_PLUGINS env var
         const defaultPluginsValue = process.env.THEIA_DEFAULT_PLUGINS || undefined;
@@ -118,13 +118,13 @@ export class PluginDeployerImpl implements PluginDeployer {
         const userEntries: string[] = [];
         const context: PluginDeployerStartContext = { userEntries, systemEntries };
 
-        console.time('==== !!!!!!!!! PluginDeployerImpl !!! on will start === ');
+        // console.time('==== !!!!!!!!! PluginDeployerImpl !!! on will start === ');
         for (const contribution of this.participants.getContributions()) {
             if (contribution.onWillStart) {
                 await contribution.onWillStart(context);
             }
         }
-        console.timeEnd('==== !!!!!!!!! PluginDeployerImpl !!! on will start === ');
+        // console.timeEnd('==== !!!!!!!!! PluginDeployerImpl !!! on will start === ');
 
         const resolvingPluginsDate = new Date();
         console.error('!!!!!!!!! PluginDeployerImpl !!! before resolving plugins !!! ', resolvingPluginsDate.getMinutes(),
@@ -134,28 +134,28 @@ export class PluginDeployerImpl implements PluginDeployer {
 
         const startDeployTime = performance.now();
 
-        console.time('==== !!!!!!!!! PluginDeployerImpl !!! resolving plugins === ');
+        // console.time('==== !!!!!!!!! PluginDeployerImpl !!! resolving plugins === ');
 
-        console.time('==== !!!!!!!!! PluginDeployerImpl !!! resolving USER plugins === ');
+        // console.time('==== !!!!!!!!! PluginDeployerImpl !!! resolving USER plugins === ');
         const userPlugins = await this.resolvePlugins(context.userEntries, PluginType.User);
-        console.timeEnd('==== !!!!!!!!! PluginDeployerImpl !!! resolving USER plugins === ');
+        // console.timeEnd('==== !!!!!!!!! PluginDeployerImpl !!! resolving USER plugins === ');
 
-        console.time('==== !!!!!!!!! PluginDeployerImpl !!! resolving SYSTEM plugins === ');
+        // console.time('==== !!!!!!!!! PluginDeployerImpl !!! resolving SYSTEM plugins === ');
         const systemPlugins = await this.resolvePlugins(context.systemEntries, PluginType.System);
-        console.timeEnd('==== !!!!!!!!! PluginDeployerImpl !!! resolving SYSTEM plugins === ');
+        // console.timeEnd('==== !!!!!!!!! PluginDeployerImpl !!! resolving SYSTEM plugins === ');
 
         // const [userPlugins, systemPlugins] = await Promise.all([
         //     this.resolvePlugins(context.userEntries, PluginType.User),
         //     this.resolvePlugins(context.systemEntries, PluginType.System)
         // ]);
 
-        console.timeEnd('==== !!!!!!!!! PluginDeployerImpl !!! resolving plugins === ');
+        // console.timeEnd('==== !!!!!!!!! PluginDeployerImpl !!! resolving plugins === ');
 
-        const currentDate2 = new Date();
-        console.error('!!!!!!!!! PluginDeployerImpl !!! before deploy !!! ', currentDate2.getMinutes(),
-            ',',
-            currentDate2.getSeconds()
-        );
+        // const currentDate2 = new Date();
+        // console.error('!!!!!!!!! PluginDeployerImpl !!! before deploy !!! ', currentDate2.getMinutes(),
+        //     ',',
+        //     currentDate2.getSeconds()
+        // );
         await this.deployPlugins([...userPlugins, ...systemPlugins]);
         this.logMeasurement('Deploy plugins list', startDeployTime);
     }
@@ -195,7 +195,7 @@ export class PluginDeployerImpl implements PluginDeployer {
      * ```
      */
     async resolvePlugins(pluginEntries: ReadonlyArray<string>, type: PluginType): Promise<PluginDeployerEntry[]> {
-        console.error('==== !!!!!!!!! PluginDeployerImpl !!! resolving plugins !!! ');
+        // console.error('==== !!!!!!!!! PluginDeployerImpl !!! resolving plugins !!! ');
         const visited = new Set<string>();
         const pluginsToDeploy = new Map<string, PluginDeployerEntry>();
 
@@ -217,19 +217,19 @@ export class PluginDeployerImpl implements PluginDeployer {
                 try {
                     const pluginDeployerEntries = await this.resolvePlugin(current, type);
 
-                    console.time('==== !!!!!!!!! PluginDeployerImpl !!! applyFileHandlers === ');
+                    // console.time('==== !!!!!!!!! PluginDeployerImpl !!! applyFileHandlers === ');
                     await this.applyFileHandlers(pluginDeployerEntries);
-                    console.timeEnd('==== !!!!!!!!! PluginDeployerImpl !!! applyFileHandlers === ');
+                    // console.timeEnd('==== !!!!!!!!! PluginDeployerImpl !!! applyFileHandlers === ');
 
-                    console.time('==== !!!!!!!!! PluginDeployerImpl !!! applyDirectoryFileHandlers === ');
+                    // console.time('==== !!!!!!!!! PluginDeployerImpl !!! applyDirectoryFileHandlers === ');
                     await this.applyDirectoryFileHandlers(pluginDeployerEntries);
-                    console.timeEnd('==== !!!!!!!!! PluginDeployerImpl !!! applyDirectoryFileHandlers === ');
+                    // console.timeEnd('==== !!!!!!!!! PluginDeployerImpl !!! applyDirectoryFileHandlers === ');
 
-                    console.time('==== !!!!!!!!! PluginDeployerImpl !!! getDependencies ===');
+                    // console.time('==== !!!!!!!!! PluginDeployerImpl !!! getDependencies ===');
                     for (const deployerEntry of pluginDeployerEntries) {
-                        console.time(`==== !!!!!!!!! PluginDeployerImpl !!! getPluginDependencies === ${deployerEntry.id()}`);
+                        // console.time(`==== !!!!!!!!! PluginDeployerImpl !!! getPluginDependencies === ${deployerEntry.id()}`);
                         const dependencies = await this.pluginDeployerHandler.getPluginDependencies(deployerEntry);
-                        console.timeEnd(`==== !!!!!!!!! PluginDeployerImpl !!! getPluginDependencies === ${deployerEntry.id()}`);
+                        // console.timeEnd(`==== !!!!!!!!! PluginDeployerImpl !!! getPluginDependencies === ${deployerEntry.id()}`);
 
                         if (dependencies && !pluginsToDeploy.has(dependencies.metadata.model.id)) {
                             pluginsToDeploy.set(dependencies.metadata.model.id, deployerEntry);
@@ -238,7 +238,7 @@ export class PluginDeployerImpl implements PluginDeployer {
                             }
                         }
                     }
-                    console.timeEnd('==== !!!!!!!!! PluginDeployerImpl !!! getDependencies ===');
+                    // console.timeEnd('==== !!!!!!!!! PluginDeployerImpl !!! getDependencies ===');
                 } catch (e) {
                     console.error(`Failed to resolve plugins from '${current}'`, e);
                 }
@@ -343,9 +343,9 @@ export class PluginDeployerImpl implements PluginDeployer {
             // create context object
             const context = new PluginDeployerResolverContextImpl(foundPluginResolver, pluginId);
 
-            console.time(`==== !!!!!!!!! PluginDeployerImpl !!! resolve plugin === ${pluginId}`);
+            // console.time(`==== !!!!!!!!! PluginDeployerImpl !!! resolve plugin === ${pluginId}`);
             await foundPluginResolver.resolve(context);
-            console.timeEnd(`==== !!!!!!!!! PluginDeployerImpl !!! resolve plugin === ${pluginId}`);
+            // console.timeEnd(`==== !!!!!!!!! PluginDeployerImpl !!! resolve plugin === ${pluginId}`);
 
             context.getPlugins().forEach(entry => {
                 entry.type = type;

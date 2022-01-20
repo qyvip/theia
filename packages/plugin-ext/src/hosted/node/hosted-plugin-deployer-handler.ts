@@ -59,26 +59,26 @@ export class HostedPluginDeployerHandler implements PluginDeployerHandler {
     }
 
     async getDeployedBackendPluginIds(): Promise<string[]> {
-        console.error('!!!!!!!!! HostedPluginDeployerHandler +++ getDeployedBackendPluginIds ');
+        // console.error('!!!!!!!!! HostedPluginDeployerHandler +++ getDeployedBackendPluginIds ');
 
-        const currentDate = new Date();
-        console.error('!!!!!!!!! HostedPluginDeployerHandler !!! await ',
-            currentDate.getMinutes(),
-            ',',
-            currentDate.getSeconds()
-        );
-        console.time('!!! HostedPluginDeployerHandler !!! await backendPluginsMetadataDeferred  !!! ');
+        // const currentDate = new Date();
+        // console.error('!!!!!!!!! HostedPluginDeployerHandler !!! await ',
+        //     currentDate.getMinutes(),
+        //     ',',
+        //     currentDate.getSeconds()
+        // );
+        // console.time('!!! HostedPluginDeployerHandler !!! await backendPluginsMetadataDeferred  !!! ');
 
         // await first deploy
         await this.backendPluginsMetadataDeferred.promise;
 
-        const resolveDate = new Date();
-        console.error('!!!!!!!!! HostedPluginDeployerHandler !!! after await ',
-            resolveDate.getMinutes(),
-            ',',
-            resolveDate.getSeconds()
-        );
-        console.timeEnd('!!! HostedPluginDeployerHandler !!! await backendPluginsMetadataDeferred  !!! ');
+        // const resolveDate = new Date();
+        // console.error('!!!!!!!!! HostedPluginDeployerHandler !!! after await ',
+        //     resolveDate.getMinutes(),
+        //     ',',
+        //     resolveDate.getSeconds()
+        // );
+        // console.timeEnd('!!! HostedPluginDeployerHandler !!! await backendPluginsMetadataDeferred  !!! ');
         // fetch the last deployed state
         return [...this.deployedBackendPlugins.keys()];
     }
@@ -95,21 +95,21 @@ export class HostedPluginDeployerHandler implements PluginDeployerHandler {
      * @throws never! in order to isolate plugin deployment
      */
     async getPluginDependencies(entry: PluginDeployerEntry): Promise<PluginDependencies | undefined> {
-        console.error('!!!!!!!!! HostedPluginDeployerHandler !!! getPluginDependencies ', entry.id());
+        // console.error('!!!!!!!!! HostedPluginDeployerHandler !!! getPluginDependencies ', entry.id());
         const pluginPath = entry.path();
         try {
             const manifest = await this.reader.readPackage(pluginPath);
             if (!manifest) {
-                console.error('!!!!!!!!! HostedPluginDeployerHandler !!! getPluginDependencies !!! RETURN ', entry.id());
+                // console.error('!!!!!!!!! HostedPluginDeployerHandler !!! getPluginDependencies !!! RETURN ', entry.id());
                 return undefined;
             }
             const metadata = this.reader.readMetadata(manifest);
             const dependencies: PluginDependencies = { metadata };
             if (entry.type !== PluginType.System) {
-                console.error('!!!!!!!!! HostedPluginDeployerHandler !!! SKIP SYSTEM PLUGIN ', entry.id());
+                // console.error('!!!!!!!!! HostedPluginDeployerHandler !!! SKIP SYSTEM PLUGIN ', entry.id());
                 dependencies.mapping = this.reader.readDependencies(manifest);
             } else {
-                console.error('!!!!!!!!! HostedPluginDeployerHandler !!! NOT SKIP PLUGIN ', entry.id());
+                // console.error('!!!!!!!!! HostedPluginDeployerHandler !!! NOT SKIP PLUGIN ', entry.id());
             }
             return dependencies;
         } catch (e) {
@@ -133,7 +133,7 @@ export class HostedPluginDeployerHandler implements PluginDeployerHandler {
             currentDate.getSeconds()
         );
         for (const plugin of backendPlugins) {
-            console.error('!!!!!!!!! HostedPluginDeployerHandler +++ deployBackendPlugin ', plugin.path());
+            // console.error('!!!!!!!!! HostedPluginDeployerHandler +++ deployBackendPlugin ', plugin.path());
             // console.time('!!! HostedPluginDeployerHandler !!!deployBackendPlugin ');
 
             await this.deployPlugin(plugin, 'backend');
@@ -146,11 +146,11 @@ export class HostedPluginDeployerHandler implements PluginDeployerHandler {
         // await this.wait(60000);
         // console.error('+++++++++++++++++++++++++============== HostedPluginDeployerHandler !!!deployBackendPlugin !!! AFTER WAIT');
 
-        const resolveDate = new Date();
-        console.error('!!!!!!!!! HostedPluginDeployerHandler +++ deployBackendPlugins !!! RESOLVE ', resolveDate.getMinutes(),
-            ',',
-            resolveDate.getSeconds()
-        );
+        // const resolveDate = new Date();
+        // console.error('!!!!!!!!! HostedPluginDeployerHandler +++ deployBackendPlugins !!! RESOLVE ', resolveDate.getMinutes(),
+        //     ',',
+        //     resolveDate.getSeconds()
+        // );
         // resolve on first deploy
         this.backendPluginsMetadataDeferred.resolve(undefined);
     }

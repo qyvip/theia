@@ -39,9 +39,10 @@ export class PluginTheiaFileHandler implements PluginDeployerFileHandler {
         console.error('*************** PluginTheiaFileHandler !!! handle !!! ID ', id);
         const pluginDir = await this.getPluginDir(context);
         console.error('*** PluginTheiaFileHandler !!! handle !!! TYPE ', context.pluginEntry().type);
+        console.error('*** PluginTheiaFileHandler !!! handle !!! PATH ', context.pluginEntry().path());
 
         console.log(`[${id}]: trying to decompress into "${pluginDir}"...`);
-        if (context.pluginEntry().type === PluginType.User && await fs.pathExists(pluginDir)) {
+        if (await fs.pathExists(pluginDir)) {
             console.log(`[${id}]: already found`);
             context.pluginEntry().updatePath(pluginDir);
             return;
