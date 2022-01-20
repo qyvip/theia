@@ -225,10 +225,11 @@ export class PluginDeployerImpl implements PluginDeployer {
                     await this.applyDirectoryFileHandlers(pluginDeployerEntries);
                     console.timeEnd('==== !!!!!!!!! PluginDeployerImpl !!! applyDirectoryFileHandlers === ');
 
+                    console.time('==== !!!!!!!!! PluginDeployerImpl !!! getDependencies ===');
                     for (const deployerEntry of pluginDeployerEntries) {
-                        console.time(`==== !!!!!!!!! PluginDeployerImpl !!! getPluginDependencies === ${deployerEntry.id}`);
+                        console.time(`==== !!!!!!!!! PluginDeployerImpl !!! getPluginDependencies === ${deployerEntry.id()}`);
                         const dependencies = await this.pluginDeployerHandler.getPluginDependencies(deployerEntry);
-                        console.timeEnd(`==== !!!!!!!!! PluginDeployerImpl !!! getPluginDependencies === ${deployerEntry.id}`);
+                        console.timeEnd(`==== !!!!!!!!! PluginDeployerImpl !!! getPluginDependencies === ${deployerEntry.id()}`);
 
                         if (dependencies && !pluginsToDeploy.has(dependencies.metadata.model.id)) {
                             pluginsToDeploy.set(dependencies.metadata.model.id, deployerEntry);
@@ -237,6 +238,7 @@ export class PluginDeployerImpl implements PluginDeployer {
                             }
                         }
                     }
+                    console.timeEnd('==== !!!!!!!!! PluginDeployerImpl !!! getDependencies ===');
                 } catch (e) {
                     console.error(`Failed to resolve plugins from '${current}'`, e);
                 }
