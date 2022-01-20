@@ -31,7 +31,7 @@ export class PluginTheiaFileHandler implements PluginDeployerFileHandler {
     protected readonly environment: PluginTheiaEnvironment;
 
     accept(resolvedPlugin: PluginDeployerEntry): boolean {
-        return resolvedPlugin.isFile() && resolvedPlugin.path() !== null && resolvedPlugin.path().endsWith('.theia');
+        return resolvedPlugin.path() !== null && resolvedPlugin.path().endsWith('.theia');
     }
 
     async handle(context: PluginDeployerFileHandlerContext): Promise<void> {
@@ -44,6 +44,13 @@ export class PluginTheiaFileHandler implements PluginDeployerFileHandler {
         console.log(`[${id}]: trying to decompress into "${pluginDir}"...`);
         if (await fs.pathExists(pluginDir)) {
             console.log(`[${id}]: already found`);
+            context.pluginEntry().updatePath(pluginDir);
+            return;
+        }
+
+        if (context.pluginEntry().isDirectory()) {
+            console.time(`*************** PluginTheiaFileHandler !!! ALREADY Unpacked !!! ${id}`);
+            fs.copySync(context.pluginEntry().path(), pluginDir);    
             context.pluginEntry().updatePath(pluginDir);
             return;
         }
